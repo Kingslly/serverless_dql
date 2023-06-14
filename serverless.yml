@@ -1,0 +1,38 @@
+service: serverless_dql
+
+provider:
+  name: aws
+  runtime: python3.8
+  stage: dev
+  region: us-east-1
+
+functions:
+  producer:
+    handler: handler.producer
+    events:
+      - http:
+          path: producer
+          method: get
+
+  consumer:
+    handler: handler.consumer
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [Queue, Arn]
+
+resources:
+  Resources:
+    Queue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: my-queue
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt: [DLQ, Arn]
+          maxReceiveCount: 5
+
+    DLQ:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: my-queue-dlq
